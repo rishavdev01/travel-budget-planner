@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 interface TravelPlan {
+  source: string
   destination: string
   budget: number
   days: number
@@ -17,7 +18,7 @@ interface TravelPlan {
   spendingPriority: "accommodation" | "food" | "activities" | "balanced"
 }
 
-const DOMESTIC_DESTINATIONS = [
+const DOMESTIC_CITIES = [
   "Delhi",
   "Mumbai",
   "Goa",
@@ -28,6 +29,8 @@ const DOMESTIC_DESTINATIONS = [
   "Bangalore",
   "Hyderabad",
   "Kolkata",
+  "Pune",
+  "Ahmedabad",
 ]
 
 const INTERNATIONAL_DESTINATIONS = [
@@ -48,6 +51,7 @@ export interface TravelPlannerFormProps {
 }
 
 export function TravelPlannerForm({ onSubmit }: TravelPlannerFormProps) {
+  const [source, setSource] = useState("")
   const [destination, setDestination] = useState("")
   const [budget, setBudget] = useState(25000)
   const [days, setDays] = useState(3)
@@ -57,15 +61,18 @@ export function TravelPlannerForm({ onSubmit }: TravelPlannerFormProps) {
   const [spendingPriority, setSpendingPriority] = useState<"accommodation" | "food" | "activities" | "balanced">(
     "balanced",
   )
-  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [sourceShowSuggestions, setSourceShowSuggestions] = useState(false)
+  const [destShowSuggestions, setDestShowSuggestions] = useState(false)
 
-  const suggestions = travelMode === "domestic" ? DOMESTIC_DESTINATIONS : INTERNATIONAL_DESTINATIONS
-  const filteredSuggestions = suggestions.filter((s) => s.toLowerCase().includes(destination.toLowerCase()))
+  const suggestions = travelMode === "domestic" ? DOMESTIC_CITIES : INTERNATIONAL_DESTINATIONS
+  const sourceSuggestions = suggestions.filter((s) => s.toLowerCase().includes(source.toLowerCase()))
+  const destSuggestions = suggestions.filter((s) => s.toLowerCase().includes(destination.toLowerCase()))
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (destination.trim()) {
+    if (source.trim() && destination.trim() && source !== destination) {
       onSubmit({
+        source: source.trim(),
         destination: destination.trim(),
         budget: Number(budget),
         days: Number(days),
@@ -86,7 +93,7 @@ export function TravelPlannerForm({ onSubmit }: TravelPlannerFormProps) {
               Plan Your Trip
             </CardTitle>
             <CardDescription className="text-base mt-3">
-              Enter your destination, budget, preferences, and group details to get personalized travel recommendations
+              Enter your source, destination, budget, and preferences to get personalized travel recommendations
             </CardDescription>
           </CardHeader>
 
@@ -100,6 +107,7 @@ export function TravelPlannerForm({ onSubmit }: TravelPlannerFormProps) {
                     type="button"
                     onClick={() => {
                       setTravelMode("domestic")
+                      setSource("")
                       setDestination("")
                     }}
                     className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
@@ -114,6 +122,7 @@ export function TravelPlannerForm({ onSubmit }: TravelPlannerFormProps) {
                     type="button"
                     onClick={() => {
                       setTravelMode("international")
+                      setSource("")
                       setDestination("")
                     }}
                     className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
@@ -127,39 +136,78 @@ export function TravelPlannerForm({ onSubmit }: TravelPlannerFormProps) {
                 </div>
               </div>
 
-              {/* Destination Input */}
-              <div className="animate-slide-in-right" style={{ animationDelay: "0.2s" }}>
-                <label htmlFor="destination" className="block text-sm font-semibold text-foreground mb-2">
-                  Destination
-                </label>
-                <div className="relative">
-                  <Input
-                    id="destination"
-                    type="text"
-                    placeholder={`Enter a ${travelMode === "domestic" ? "destination in India" : "destination"}`}
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                    onFocus={() => setShowSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    className="py-3 px-4 text-base border-2 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                  />
-                  {showSuggestions && filteredSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border-2 border-primary/30 rounded-lg shadow-2xl z-10 animate-scale-in">
-                      {filteredSuggestions.map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          type="button"
-                          onClick={() => {
-                            setDestination(suggestion)
-                            setShowSuggestions(false)
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-primary/15 transition-all text-foreground font-medium border-b border-border last:border-b-0"
-                        >
-                          📍 {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+              {/* Source and Destination Inputs */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Source Input */}
+                <div className="animate-slide-in-left" style={{ animationDelay: "0.2s" }}>
+                  <label htmlFor="source" className="block text-sm font-semibold text-foreground mb-2">
+                    📍 From (Source)
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="source"
+                      type="text"
+                      placeholder={`Enter your starting city in ${travelMode === "domestic" ? "India" : "the world"}`}
+                      value={source}
+                      onChange={(e) => setSource(e.target.value)}
+                      onFocus={() => setSourceShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setSourceShowSuggestions(false), 200)}
+                      className="py-3 px-4 text-base border-2 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                    {sourceShowSuggestions && sourceSuggestions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border-2 border-primary/30 rounded-lg shadow-2xl z-10 animate-scale-in">
+                        {sourceSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => {
+                              setSource(suggestion)
+                              setSourceShowSuggestions(false)
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-primary/15 transition-all text-foreground font-medium border-b border-border last:border-b-0"
+                          >
+                            📍 {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Destination Input */}
+                <div className="animate-slide-in-right" style={{ animationDelay: "0.2s" }}>
+                  <label htmlFor="destination" className="block text-sm font-semibold text-foreground mb-2">
+                    🎯 To (Destination)
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="destination"
+                      type="text"
+                      placeholder={`Enter your destination in ${travelMode === "domestic" ? "India" : "the world"}`}
+                      value={destination}
+                      onChange={(e) => setDestination(e.target.value)}
+                      onFocus={() => setDestShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setDestShowSuggestions(false), 200)}
+                      className="py-3 px-4 text-base border-2 border-secondary/30 focus:border-secondary focus:ring-2 focus:ring-secondary/20 transition-all"
+                    />
+                    {destShowSuggestions && destSuggestions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border-2 border-secondary/30 rounded-lg shadow-2xl z-10 animate-scale-in">
+                        {destSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => {
+                              setDestination(suggestion)
+                              setDestShowSuggestions(false)
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-secondary/15 transition-all text-foreground font-medium border-b border-border last:border-b-0"
+                          >
+                            🎯 {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -271,11 +319,15 @@ export function TravelPlannerForm({ onSubmit }: TravelPlannerFormProps) {
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-primary to-secondary hover:shadow-2xl text-primary-foreground font-bold py-6 text-lg rounded-lg transition-all transform hover:scale-105 card-hover animate-fade-in-up"
+                disabled={source === destination || !source || !destination}
+                className="w-full bg-gradient-to-r from-primary to-secondary hover:shadow-2xl text-primary-foreground font-bold py-6 text-lg rounded-lg transition-all transform hover:scale-105 card-hover animate-fade-in-up disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ animationDelay: "0.8s" }}
               >
                 ✨ Generate Travel Plan
               </Button>
+              {source === destination && (
+                <p className="text-sm text-center text-red-600 font-medium">Source and destination must be different</p>
+              )}
             </form>
           </CardContent>
         </Card>

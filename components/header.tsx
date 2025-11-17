@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Menu, X } from "lucide-react"
+import { Menu, X } from 'lucide-react'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -27,6 +27,9 @@ export function Header() {
           </a>
           <Link href="/planner" className="text-foreground hover:text-primary transition font-medium">
             Trip Planner
+          </Link>
+          <Link href="/nearby" className="text-foreground hover:text-primary transition font-medium">
+            Explore Nearby
           </Link>
           <a href="#travel-mode" className="text-foreground hover:text-primary transition font-medium">
             Plan Trip
@@ -53,6 +56,9 @@ export function Header() {
           </a>
           <Link href="/planner" className="text-foreground hover:text-primary font-medium">
             Trip Planner
+          </Link>
+          <Link href="/nearby" className="text-foreground hover:text-primary font-medium">
+            Explore Nearby
           </Link>
           <a href="#travel-mode" className="text-foreground hover:text-primary font-medium">
             Plan Trip

@@ -7,6 +7,7 @@ import { TravelPlannerForm } from "@/components/travel-planner-form"
 import { TravelResults } from "@/components/travel-results"
 
 interface TravelPlan {
+  source: string
   destination: string
   budget: number
   days: number

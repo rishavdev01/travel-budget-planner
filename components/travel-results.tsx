@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { SuggestedPlaces } from "./suggested-places"
 
 interface TravelResults {
+  source: string
   destination: string
   budget: number
   days: number
@@ -16,17 +18,24 @@ interface BookingOption {
   [key: string]: any
 }
 
-export function TravelResults({ destination, budget, days, travelMode }: TravelResults) {
+interface BookingLink {
+  provider: string
+  url: string
+  icon: string
+}
+
+export function TravelResults({ source, destination, budget, days, travelMode }: TravelResults) {
   const [tripData, setTripData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [bookingLinks, setBookingLinks] = useState<BookingLink[]>([])
 
   useEffect(() => {
     const fetchTripDetails = async () => {
       try {
         setLoading(true)
         const response = await fetch(
-          `/api/trip-details?destination=${encodeURIComponent(destination)}&budget=${budget}&days=${days}&travelMode=${travelMode}`,
+          `/api/trip-details?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}&budget=${budget}&days=${days}&travelMode=${travelMode}`,
         )
 
         if (!response.ok) {
@@ -45,7 +54,7 @@ export function TravelResults({ destination, budget, days, travelMode }: TravelR
     }
 
     fetchTripDetails()
-  }, [destination, budget, days, travelMode])
+  }, [source, destination, budget, days, travelMode])
 
   const calculateBudgetAllocation = () => {
     const priority = tripData?.spendingPriority || "balanced"
@@ -97,6 +106,26 @@ export function TravelResults({ destination, budget, days, travelMode }: TravelR
   const dailyFoodCost = Math.round(foodBudget / days)
   const totalDailySpend = Math.round(budget / days)
 
+  const getBookingLinks = (): BookingLink[] => {
+    const links: BookingLink[] = []
+
+    if (travelMode === "domestic") {
+      links.push(
+        { provider: "Goibibo", url: `https://www.goibibo.com/search?from=${source}&to=${destination}`, icon: "🚀" },
+        { provider: "MakeMyTrip", url: `https://www.makemytrip.com/?from=${source}&to=${destination}`, icon: "✈️" },
+        { provider: "ConfirmTkt", url: `https://www.confirmtkt.com/`, icon: "🎫" },
+      )
+    } else {
+      links.push(
+        { provider: "Skyscanner", url: `https://www.skyscanner.co.in/`, icon: "✈️" },
+        { provider: "Agoda", url: `https://www.agoda.com/`, icon: "🏨" },
+        { provider: "Airbnb", url: `https://www.airbnb.co.in/`, icon: "🏠" },
+      )
+    }
+
+    return links
+  }
+
   if (loading) {
     return (
       <section className="py-12 md:py-20 bg-gradient-to-br from-primary/5 to-secondary/5">
@@ -125,8 +154,13 @@ export function TravelResults({ destination, budget, days, travelMode }: TravelR
           <h2 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-4">
             Your Dream Trip Awaits
           </h2>
+          <div className="flex justify-center items-center gap-4 mb-6">
+            <div className="text-2xl font-bold text-primary">{source}</div>
+            <div className="text-3xl">🚀</div>
+            <div className="text-2xl font-bold text-secondary">{destination}</div>
+          </div>
           <p className="text-lg text-muted-foreground mb-6">
-            {destination} • {days} Days • {tripData?.groupSize} {tripData?.groupSize === 1 ? "Person" : "People"} • ₹
+            {days} Days • {tripData?.groupSize} {tripData?.groupSize === 1 ? "Person" : "People"} • ₹
             {tripData?.totalBudget?.toLocaleString("en-IN")} Total
           </p>
           <div className="flex flex-wrap justify-center gap-3">
@@ -431,6 +465,37 @@ export function TravelResults({ destination, budget, days, travelMode }: TravelR
             </div>
           </div>
         )}
+
+        <div className="mt-20 pt-12 border-t-2 border-primary/10 animate-fade-in-up" style={{ animationDelay: "1s" }}>
+          <h3 className="text-3xl font-bold text-foreground mb-8 text-center">Book Directly On Partner Sites</h3>
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {getBookingLinks().map((link, idx) => (
+              <a
+                key={link.provider}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group"
+                style={{
+                  animation: `slideInUp 0.6s ease-out ${1.1 + idx * 0.1}s both`,
+                }}
+              >
+                <div className="p-6 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-lg border-2 border-primary/20 hover:border-primary/50 group-hover:shadow-xl transition-all duration-300">
+                  <div className="text-4xl mb-3">{link.icon}</div>
+                  <h4 className="text-lg font-bold text-foreground mb-2">{link.provider}</h4>
+                  <p className="text-sm text-muted-foreground mb-4">Book on partner site for best deals</p>
+                  <button className="w-full py-2 px-4 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold group-hover:shadow-lg transition-all">
+                    Visit →
+                  </button>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-20 pt-12 border-t-2 border-accent/10 animate-fade-in-up" style={{ animationDelay: "1.2s" }}>
+          <SuggestedPlaces destination={destination} budget={budget} days={days} />
+        </div>
       </div>
     </section>
   )
