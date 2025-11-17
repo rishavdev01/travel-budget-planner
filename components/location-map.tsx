@@ -34,36 +34,47 @@ export function LocationMap({ onLocationSelect }: LocationMapProps) {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords
-        
+
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
           )
           const data = await response.json()
-          
+
+          const cityName = 
+            data.address?.city || 
+            data.address?.town || 
+            data.address?.village || 
+            data.address?.state_district ||
+            data.address?.county ||
+            "Unknown Location"
+
           const locationData: LocationData = {
             lat: latitude,
             lng: longitude,
-            city: data.address?.city || data.address?.town || data.address?.village || "Unknown Location",
+            city: cityName,
             country: data.address?.country || "Unknown",
           }
-          
+
           setLocation(locationData)
-          onLocationSelect?.({
-            lat: latitude,
-            lng: longitude,
-            city: locationData.city,
-            country: locationData.country,
-          })
+          onLocationSelect?.(locationData)
+          
+          console.log("[v0] Location detected:", locationData)
         } catch (err) {
           setError("Could not fetch location details")
-          console.error(err)
+          console.error("[v0] Location fetch error:", err)
         }
         setLoading(false)
       },
       (err) => {
         setError(`Error getting location: ${err.message}`)
+        console.error("[v0] Geolocation error:", err)
         setLoading(false)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
       }
     )
   }

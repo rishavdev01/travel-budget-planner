@@ -22,24 +22,21 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex gap-8">
-          <a href="#features" className="text-foreground hover:text-primary transition font-medium">
+          <Link href="/#features" className="text-foreground hover:text-primary transition font-medium">
             Features
-          </a>
+          </Link>
           <Link href="/planner" className="text-foreground hover:text-primary transition font-medium">
             Trip Planner
           </Link>
           <Link href="/nearby" className="text-foreground hover:text-primary transition font-medium">
             Explore Nearby
           </Link>
-          <a href="#travel-mode" className="text-foreground hover:text-primary transition font-medium">
-            Plan Trip
-          </a>
-          <a href="#recommendations" className="text-foreground hover:text-primary transition font-medium">
+          <Link href="/features" className="text-foreground hover:text-primary transition font-medium">
+            Smart Tools
+          </Link>
+          <Link href="/#recommendations" className="text-foreground hover:text-primary transition font-medium">
             Recommendations
-          </a>
-          <a href="#compare" className="text-foreground hover:text-primary transition font-medium">
-            Explore
-          </a>
+          </Link>
         </nav>
 
         {/* Mobile Menu Button */}
@@ -51,24 +48,21 @@ export function Header() {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <nav className="md:hidden bg-card border-t border-primary/20 p-4 flex flex-col gap-4">
-          <a href="#features" className="text-foreground hover:text-primary font-medium">
+          <Link href="/#features" className="text-foreground hover:text-primary font-medium">
             Features
-          </a>
+          </Link>
           <Link href="/planner" className="text-foreground hover:text-primary font-medium">
             Trip Planner
           </Link>
           <Link href="/nearby" className="text-foreground hover:text-primary font-medium">
             Explore Nearby
           </Link>
-          <a href="#travel-mode" className="text-foreground hover:text-primary font-medium">
-            Plan Trip
-          </a>
-          <a href="#recommendations" className="text-foreground hover:text-primary font-medium">
+          <Link href="/features" className="text-foreground hover:text-primary font-medium">
+            Smart Tools
+          </Link>
+          <Link href="/#recommendations" className="text-foreground hover:text-primary font-medium">
             Recommendations
-          </a>
-          <a href="#compare" className="text-foreground hover:text-primary font-medium">
-            Explore
-          </a>
+          </Link>
         </nav>
       )}
     </header>

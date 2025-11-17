@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { MapPin, Star, Clock, DollarSign } from 'lucide-react'
+import { MapPin, Star, Clock, DollarSign, Navigation } from 'lucide-react'
 
 interface NearbyPlace {
   id: string
@@ -16,34 +16,42 @@ interface NearbyPlace {
   visitTime: string
   entryFee: string
   tags: string[]
-  latitude: number
-  longitude: number
 }
 
 interface NearbyPlacesSectionProps {
   city: string
+  latitude?: number
+  longitude?: number
 }
 
-export function NearbyPlacesSection({ city }: NearbyPlacesSectionProps) {
+export function NearbyPlacesSection({ city, latitude, longitude }: NearbyPlacesSectionProps) {
   const [places, setPlaces] = useState<NearbyPlace[]>([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState("all")
+  const [detectedCity, setDetectedCity] = useState("")
 
   useEffect(() => {
-    if (city) {
+    if (city || (latitude && longitude)) {
       fetchNearbyPlaces()
     }
-  }, [city])
+  }, [city, latitude, longitude])
 
   const fetchNearbyPlaces = async () => {
     setLoading(true)
     try {
-      // Use city name as primary identifier
-      const response = await fetch(`/api/nearby-places?city=${encodeURIComponent(city)}`)
+      const params = new URLSearchParams()
+      if (city) params.append("city", city)
+      if (latitude) params.append("lat", latitude.toString())
+      if (longitude) params.append("lng", longitude.toString())
+      
+      const response = await fetch(`/api/nearby-places?${params.toString()}`)
       const data = await response.json()
       setPlaces(data.places || [])
+      setDetectedCity(data.city || city)
+      
+      console.log("[v0] Fetched places for:", data.city, "Accuracy:", data.accuracy, "Count:", data.places.length)
     } catch (err) {
-      console.error("Error fetching nearby places:", err)
+      console.error("[v0] Error fetching nearby places:", err)
     }
     setLoading(false)
   }
@@ -55,9 +63,14 @@ export function NearbyPlacesSection({ city }: NearbyPlacesSectionProps) {
     <div className="space-y-6 animate-fade-in-up">
       <Card className="border-2 border-primary/30 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-primary/20 to-secondary/20 border-b border-primary/30">
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-primary" />
-            Nearby Places to Explore in {city}
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Navigation className="w-5 h-5 text-primary animate-pulse" />
+              <span>Nearby Places in {detectedCity || city}</span>
+            </div>
+            <span className="text-sm font-normal text-muted-foreground">
+              {filteredPlaces.length} places found
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">

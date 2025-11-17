@@ -39,7 +39,11 @@ export default function NearbyPage() {
 
             <div className="lg:col-span-2">
               {selectedLocation ? (
-                <NearbyPlacesSection city={selectedLocation.city} />
+                <NearbyPlacesSection 
+                  city={selectedLocation.city}
+                  latitude={selectedLocation.lat}
+                  longitude={selectedLocation.lng}
+                />
               ) : (
                 <Card className="border-2 border-primary/30 shadow-lg animate-fade-in-up">
                   <CardContent className="pt-12 pb-12 text-center">
