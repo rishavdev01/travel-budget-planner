@@ -11,7 +11,7 @@ interface Attraction {
   entryFee: number
   timeRequired: string
   rating: number
-  image?: string
+  image: string
   bestTime: string
   tags: string[]
 }
@@ -118,16 +118,26 @@ export function SuggestedPlaces({ destination, budget, days }: SuggestedPlacesPr
             className="group cursor-pointer"
           >
             <Card className="h-full hover:shadow-2xl transition-all border-2 border-accent/10 hover:border-accent/50 bg-gradient-to-br from-accent/5 to-background overflow-hidden">
-              <div className="relative h-48 bg-gradient-to-br from-accent/20 to-primary/20 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-4">
-                  <span className="px-3 py-1 bg-accent/90 text-white text-xs font-bold rounded-full">
+              <div className="relative h-48 overflow-hidden">
+                <img
+                  src={
+                    attraction.image ||
+                    `/placeholder.svg?height=300&width=400&query=${encodeURIComponent(attraction.name + " " + destination)}`
+                  }
+                  alt={attraction.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-4">
+                  <span className="px-3 py-1 bg-accent/90 text-white text-xs font-bold rounded-full shadow-lg">
                     {attraction.category}
                   </span>
                 </div>
               </div>
 
               <CardHeader>
-                <CardTitle className="text-lg text-foreground">{attraction.name}</CardTitle>
+                <CardTitle className="text-lg text-foreground group-hover:text-accent transition-colors">
+                  {attraction.name}
+                </CardTitle>
                 <CardDescription className="line-clamp-2">{attraction.description}</CardDescription>
               </CardHeader>
 
@@ -135,7 +145,9 @@ export function SuggestedPlaces({ destination, budget, days }: SuggestedPlacesPr
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-accent/10 rounded-lg">
                     <div className="text-xs font-semibold text-muted-foreground">Entry Fee</div>
-                    <div className="text-lg font-bold text-accent">₹{attraction.entryFee}</div>
+                    <div className="text-lg font-bold text-accent">
+                      {attraction.entryFee === 0 ? "Free" : `₹${attraction.entryFee}`}
+                    </div>
                   </div>
                   <div className="p-3 bg-primary/10 rounded-lg">
                     <div className="text-xs font-semibold text-muted-foreground">Time</div>

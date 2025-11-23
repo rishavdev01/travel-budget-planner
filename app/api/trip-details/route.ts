@@ -1,14 +1,17 @@
+import { estimateBusPrice, estimateFlightPrice, estimateTrainPrice } from "@/lib/pricing-utils"
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const destination = searchParams.get("destination")
+  const source = searchParams.get("source") || "Delhi"
+  const destination = searchParams.get("destination") || "Mumbai"
   const budget = Number(searchParams.get("budget")) || 25000
   const days = Number(searchParams.get("days")) || 3
   const travelMode = searchParams.get("travelMode") || "domestic"
   const groupSize = Number(searchParams.get("groupSize")) || 1
   const transportPreference = searchParams.get("transportPreference") || "mixed"
   const spendingPriority = searchParams.get("spendingPriority") || "balanced"
+  const departDate = new Date().toISOString().split("T")[0]
 
-  // Calculate per-person budget
   const perPersonBudget = Math.round(budget / groupSize)
 
   let budgetAllocation: any = {
@@ -27,359 +30,442 @@ export async function GET(request: Request) {
     budgetAllocation = { transport: 0.2, stay: 0.3, food: 0.2, activities: 0.25, misc: 0.05 }
   }
 
-  const destinationData: Record<string, any> = {
-    Delhi: {
-      flights: [
-        { name: "Air India", duration: "2h", price: Math.round(perPersonBudget * 0.15), seats: "5+", rating: 4.2 },
-        { name: "IndiGo", duration: "2h", price: Math.round(perPersonBudget * 0.12), seats: "8+", rating: 4.5 },
-        { name: "Spice Jet", duration: "2h", price: Math.round(perPersonBudget * 0.1), seats: "10+", rating: 4.0 },
-      ],
-      trains: [
+  const transport: any = { flights: [], trains: [], buses: [], localTransport: [] }
+
+  // Only show flights for international trips
+  if (
+    travelMode === "international" ||
+    transportPreference === "flight" ||
+    transportPreference === "flightOnly" ||
+    transportPreference === "flightWithLocal" ||
+    transportPreference === "mixed"
+  ) {
+    const estimatedPrice = estimateFlightPrice(source, destination, departDate)
+    transport.flights = [
+      {
+        name: "IndiGo",
+        duration: "2h 15m",
+        price: estimatedPrice,
+        seats: "Available",
+        rating: 4.5,
+        bookingUrl: `https://www.goibibo.com/flights/?from=${source}&to=${destination}&date=${departDate}`,
+      },
+      {
+        name: "Air India",
+        duration: "2h 30m",
+        price: Math.round(estimatedPrice * 1.1),
+        seats: "Available",
+        rating: 4.2,
+        bookingUrl: `https://www.makemytrip.com/flights/?from=${source}&to=${destination}&date=${departDate}`,
+      },
+      {
+        name: "SpiceJet",
+        duration: "2h 20m",
+        price: Math.round(estimatedPrice * 0.9),
+        seats: "Limited",
+        rating: 4.0,
+        bookingUrl: `https://www.skyscanner.co.in/transport/flights/${source}/${destination}/${departDate}`,
+      },
+    ]
+  }
+
+  if (travelMode === "domestic") {
+    if (transportPreference === "train" || transportPreference === "mixed") {
+      const estimatedTrainPrice = estimateTrainPrice(source, destination, departDate, "AC 3 Tier")
+      transport.trains = [
         {
           name: "Rajdhani Express",
-          duration: "4h",
-          price: Math.round(perPersonBudget * 0.08),
-          class: "AC 1st",
+          duration: "16h",
+          price: Math.round(estimatedTrainPrice * 1.5),
+          class: "AC 1st Class",
+          rating: 4.6,
+          bookingUrl: `https://www.irctc.co.in/nget/train-search`,
+        },
+        {
+          name: "Shatabdi / Express",
+          duration: "18h",
+          price: estimatedTrainPrice,
+          class: "AC 3 Tier",
+          rating: 4.2,
+          bookingUrl: `https://www.confirmtkt.com/trains/${source}-to-${destination}`,
+        },
+      ]
+    }
+
+    if (transportPreference === "bus" || transportPreference === "mixed") {
+      const estimatedBusPrice = estimateBusPrice(source, destination, departDate, "Volvo AC")
+      transport.buses = [
+        {
+          name: "Volvo Multi-Axle",
+          duration: "20h",
+          price: estimatedBusPrice,
+          type: "AC Sleeper",
           rating: 4.3,
+          bookingUrl: `https://www.redbus.in/bus-tickets/${source}-to-${destination}`,
         },
         {
-          name: "Shatabdi Express",
-          duration: "5h",
-          price: Math.round(perPersonBudget * 0.06),
-          class: "AC 2nd",
-          rating: 4.1,
-        },
-        {
-          name: "Premium AC",
-          duration: "6h",
-          price: Math.round(perPersonBudget * 0.05),
-          class: "AC Chair",
-          rating: 3.9,
-        },
-      ],
-      buses: [
-        {
-          name: "Volvo Sleeper",
-          duration: "8h",
-          price: Math.round(perPersonBudget * 0.04),
-          type: "Luxury",
-          rating: 4.2,
-        },
-        {
-          name: "Regular Bus",
-          duration: "10h",
-          price: Math.round(perPersonBudget * 0.02),
-          type: "Semi-Sleeper",
+          name: "State Transport",
+          duration: "22h",
+          price: Math.round(estimatedBusPrice * 0.6),
+          type: "Non-AC Seater",
           rating: 3.8,
+          bookingUrl: `https://www.redbus.in/bus-tickets/${source}-to-${destination}`,
         },
-      ],
-      hotels: [
+      ]
+    }
+  }
+
+  const getLocalTransportOptions = (city: string, days: number, perPersonBudget: number) => {
+    const normalizedCity = city.toLowerCase()
+    const localOptions: any[] = []
+
+    // Hyderabad RTC (HRTCT)
+    if (normalizedCity.includes("hyderabad")) {
+      localOptions.push(
         {
-          name: "Budget Inn",
-          price: Math.round(((perPersonBudget * budgetAllocation.stay) / days) * 0.6),
-          rating: 3.8,
-          amenities: "Basic",
-        },
-        {
-          name: "Mid Range Hotel",
-          price: Math.round((perPersonBudget * budgetAllocation.stay) / days),
-          rating: 4.2,
-          amenities: "WiFi, AC, Restaurant",
-        },
-        {
-          name: "5-Star Resort",
-          price: Math.round(((perPersonBudget * budgetAllocation.stay) / days) * 1.5),
-          rating: 4.8,
-          amenities: "Pool, Gym, Spa",
-        },
-      ],
-      restaurants: [
-        {
-          name: "Street Food Stalls",
-          price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 0.4),
-          cuisine: "Indian",
-          rating: 4.1,
-        },
-        {
-          name: "Local Restaurants",
-          price: Math.round((perPersonBudget * budgetAllocation.food) / days),
-          cuisine: "Multi-cuisine",
-          rating: 4.0,
-        },
-        {
-          name: "Fine Dining",
-          price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 2),
-          cuisine: "Premium",
+          name: "Hyderabad Metro Rail",
+          type: "Metro",
+          operator: "Hyderabad Metro",
+          price: Math.round(days * 100),
+          pricePerDay: 100,
+          description: `${days}-day unlimited metro pass covering all 3 lines`,
           rating: 4.7,
-        },
-      ],
-    },
-    Mumbai: {
-      flights: [
-        { name: "Air India", duration: "2.5h", price: Math.round(perPersonBudget * 0.16), seats: "5+", rating: 4.2 },
-        { name: "IndiGo", duration: "2.5h", price: Math.round(perPersonBudget * 0.13), seats: "8+", rating: 4.5 },
-        { name: "Jet Airways", duration: "2.5h", price: Math.round(perPersonBudget * 0.11), seats: "10+", rating: 4.1 },
-      ],
-      trains: [
-        {
-          name: "Central Railways",
-          duration: "3h",
-          price: Math.round(perPersonBudget * 0.09),
-          class: "AC 1st",
-          rating: 4.0,
+          routes: "Red, Blue, Green Lines",
+          coverage: "Airport, Hi-Tech City, Secunderabad",
+          bookingUrl: "https://www.ltmetro.com/",
         },
         {
-          name: "Express Train",
-          duration: "4h",
-          price: Math.round(perPersonBudget * 0.07),
-          class: "AC 2nd",
-          rating: 3.9,
-        },
-      ],
-      buses: [
-        { name: "Deluxe AC", duration: "6h", price: Math.round(perPersonBudget * 0.05), type: "Sleeper", rating: 4.1 },
-      ],
-      hotels: [
-        {
-          name: "Budget Hotel",
-          price: Math.round(((perPersonBudget * budgetAllocation.stay) / days) * 0.6),
-          rating: 3.9,
-          amenities: "Basic",
-        },
-        {
-          name: "Business Hotel",
-          price: Math.round((perPersonBudget * budgetAllocation.stay) / days),
-          rating: 4.3,
-          amenities: "WiFi, Restaurant",
-        },
-        {
-          name: "Luxury Hotel",
-          price: Math.round(((perPersonBudget * budgetAllocation.stay) / days) * 1.5),
-          rating: 4.9,
-          amenities: "All amenities",
-        },
-      ],
-      restaurants: [
-        {
-          name: "Street Chaat",
-          price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 0.5),
-          cuisine: "Street Food",
+          name: "TSRTC City Bus Pass",
+          type: "City Bus",
+          operator: "HRTCT (Hyderabad RTC)",
+          price: Math.round(days * 60),
+          pricePerDay: 60,
+          description: `${days}-day unlimited bus pass on all city routes`,
           rating: 4.2,
+          routes: "All city routes",
+          coverage: "Full city coverage including suburbs",
+          bookingUrl: "https://www.tsrtconline.telangana.gov.in/",
         },
         {
-          name: "Casual Dining",
-          price: Math.round((perPersonBudget * budgetAllocation.food) / days),
-          cuisine: "Indian",
-          rating: 4.1,
+          name: "Auto Rickshaw Budget",
+          type: "Local Transport",
+          operator: "Private",
+          price: Math.round(days * 200),
+          pricePerDay: 200,
+          description: "Daily auto rickshaw budget for local commute",
+          rating: 4.0,
+          routes: "Point-to-point",
+          coverage: "Entire city",
+          bookingUrl: null,
         },
+      )
+    }
+
+    // Bangalore Metropolitan Transport Corporation (BMTCT)
+    if (normalizedCity.includes("bangalore") || normalizedCity.includes("bengaluru")) {
+      localOptions.push(
         {
-          name: "5-Star Restaurant",
-          price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 2.5),
-          cuisine: "International",
+          name: "Namma Metro Pass",
+          type: "Metro",
+          operator: "Bangalore Metro",
+          price: Math.round(days * 120),
+          pricePerDay: 120,
+          description: `${days}-day unlimited metro pass on Purple & Green lines`,
           rating: 4.8,
-        },
-      ],
-    },
-    Bangkok: {
-      flights: [
-        { name: "Thai Airways", duration: "3h", price: Math.round(perPersonBudget * 0.25), seats: "5+", rating: 4.3 },
-        { name: "Air Asia", duration: "3h", price: Math.round(perPersonBudget * 0.15), seats: "8+", rating: 4.0 },
-      ],
-      trains: [
-        { name: "Express Train", duration: "8h", price: Math.round(perPersonBudget * 0.08), class: "AC", rating: 3.8 },
-      ],
-      buses: [
-        { name: "Sleeper Bus", duration: "12h", price: Math.round(perPersonBudget * 0.06), type: "VIP", rating: 3.9 },
-      ],
-      hotels: [
-        {
-          name: "Budget Hostel",
-          price: Math.round(((perPersonBudget * budgetAllocation.stay) / days) * 0.5),
-          rating: 4.0,
-          amenities: "Basic",
+          routes: "Purple, Green Lines",
+          coverage: "MG Road, Indiranagar, Whitefield, Airport",
+          bookingUrl: "https://english.bmrc.co.in/",
         },
         {
-          name: "Mid-range Hotel",
-          price: Math.round((perPersonBudget * budgetAllocation.stay) / days),
+          name: "BMTC Vayu Vajra Airport Bus",
+          type: "Airport Shuttle",
+          operator: "BMTC",
+          price: 250,
+          pricePerDay: null,
+          description: "Premium airport shuttle service",
+          rating: 4.5,
+          routes: "Airport to major city hubs",
+          coverage: "Airport connectivity",
+          bookingUrl: "https://mybmtc.karnataka.gov.in/",
+        },
+        {
+          name: "BMTC City Bus Pass",
+          type: "City Bus",
+          operator: "BMTCT (Bangalore Metropolitan Transport)",
+          price: Math.round(days * 70),
+          pricePerDay: 70,
+          description: `${days}-day unlimited bus pass on 6,000+ buses`,
+          rating: 4.3,
+          routes: "All city & suburban routes",
+          coverage: "Entire Bangalore Metropolitan Area",
+          bookingUrl: "https://mybmtc.karnataka.gov.in/",
+        },
+        {
+          name: "Ola/Uber Daily Budget",
+          type: "Cab Service",
+          operator: "Private",
+          price: Math.round(days * 300),
+          pricePerDay: 300,
+          description: "Daily cab budget for flexible travel",
           rating: 4.4,
-          amenities: "Pool, Restaurant",
+          routes: "On-demand",
+          coverage: "Full city coverage",
+          bookingUrl: null,
+        },
+      )
+    }
+
+    // Kerala RTC (KRTCT)
+    if (
+      normalizedCity.includes("kerala") ||
+      normalizedCity.includes("kochi") ||
+      normalizedCity.includes("trivandrum")
+    ) {
+      localOptions.push(
+        {
+          name: "Kochi Metro Pass",
+          type: "Metro",
+          operator: "Kochi Metro",
+          price: Math.round(days * 90),
+          pricePerDay: 90,
+          description: `${days}-day unlimited metro pass`,
+          rating: 4.6,
+          routes: "Aluva to Pettah line",
+          coverage: "Major Kochi areas",
+          bookingUrl: "https://kochimetro.org/",
         },
         {
-          name: "Luxury Resort",
-          price: Math.round(((perPersonBudget * budgetAllocation.stay) / days) * 2),
-          rating: 4.9,
-          amenities: "Spa, Pool, Restaurant",
-        },
-      ],
-      restaurants: [
-        {
-          name: "Street Food",
-          price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 0.3),
-          cuisine: "Thai Street Food",
-          rating: 4.3,
-        },
-        {
-          name: "Local Restaurant",
-          price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 0.8),
-          cuisine: "Thai",
-          rating: 4.2,
-        },
-        {
-          name: "Premium Restaurant",
-          price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 2),
-          cuisine: "International",
-          rating: 4.7,
-        },
-      ],
-    },
-    Paris: {
-      flights: [
-        { name: "Air France", duration: "10h", price: Math.round(perPersonBudget * 0.4), seats: "5+", rating: 4.4 },
-        {
-          name: "European Airlines",
-          duration: "10h",
-          price: Math.round(perPersonBudget * 0.35),
-          seats: "8+",
-          rating: 4.2,
-        },
-      ],
-      trains: [
-        { name: "Eurostar", duration: "15h", price: Math.round(perPersonBudget * 0.2), class: "Business", rating: 4.5 },
-      ],
-      buses: [
-        { name: "Coach", duration: "24h", price: Math.round(perPersonBudget * 0.1), type: "Sleeper", rating: 3.7 },
-      ],
-      hotels: [
-        {
-          name: "Budget Hotel",
-          price: Math.round(((perPersonBudget * budgetAllocation.stay) / days) * 0.6),
-          rating: 3.8,
-          amenities: "Basic",
-        },
-        {
-          name: "3-Star Hotel",
-          price: Math.round((perPersonBudget * budgetAllocation.stay) / days),
-          rating: 4.3,
-          amenities: "WiFi, Restaurant",
-        },
-        {
-          name: "5-Star Palace",
-          price: Math.round(((perPersonBudget * budgetAllocation.stay) / days) * 2.5),
-          rating: 4.9,
-          amenities: "Luxury",
-        },
-      ],
-      restaurants: [
-        {
-          name: "Cafe",
-          price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 0.7),
-          cuisine: "Casual",
+          name: "KSRTC Ordinary Bus Pass",
+          type: "State Bus",
+          operator: "KRTCT (Kerala RTC)",
+          price: Math.round(days * 50),
+          pricePerDay: 50,
+          description: `${days}-day pass for intra-city travel`,
           rating: 4.1,
+          routes: "All Kerala city routes",
+          coverage: "Kochi, Trivandrum, Kozhikode",
+          bookingUrl: "https://www.keralartc.com/",
         },
         {
-          name: "Bistro",
-          price: Math.round((perPersonBudget * budgetAllocation.food) / days),
-          cuisine: "French",
+          name: "KSRTC Fast Passenger",
+          type: "Express Bus",
+          operator: "KRTCT",
+          price: Math.round(days * 120),
+          pricePerDay: 120,
+          description: "Fast AC buses for inter-city travel within Kerala",
           rating: 4.4,
+          routes: "Major cities and tourist spots",
+          coverage: "Entire Kerala",
+          bookingUrl: "https://www.keralartc.com/",
         },
         {
-          name: "Michelin Star",
-          price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 3),
-          cuisine: "Fine Dining",
-          rating: 4.9,
+          name: "Auto/Taxi Daily Budget",
+          type: "Local Transport",
+          operator: "Private",
+          price: Math.round(days * 250),
+          pricePerDay: 250,
+          description: "Daily budget for auto rickshaws and taxis",
+          rating: 4.2,
+          routes: "Point-to-point",
+          coverage: "All Kerala cities",
+          bookingUrl: null,
         },
-      ],
+      )
+    }
+
+    // Delhi Metro & DTC
+    if (normalizedCity.includes("delhi")) {
+      localOptions.push(
+        {
+          name: "Delhi Metro Smart Card",
+          type: "Metro",
+          operator: "Delhi Metro",
+          price: Math.round(days * 150),
+          pricePerDay: 150,
+          description: `${days}-day unlimited metro travel on all lines`,
+          rating: 4.9,
+          routes: "Red, Yellow, Blue, Green, Pink, Magenta, Violet, Airport Express",
+          coverage: "Entire NCR region",
+          bookingUrl: "https://www.delhimetrorail.com/",
+        },
+        {
+          name: "DTC Bus Pass",
+          type: "City Bus",
+          operator: "Delhi Transport Corporation",
+          price: Math.round(days * 80),
+          pricePerDay: 80,
+          description: `${days}-day unlimited DTC & cluster bus pass`,
+          rating: 4.0,
+          routes: "All DTC routes",
+          coverage: "Entire Delhi",
+          bookingUrl: "https://dtc.delhi.gov.in/",
+        },
+        {
+          name: "Cab/Auto Daily Budget",
+          type: "On-demand Transport",
+          operator: "Private",
+          price: Math.round(days * 350),
+          pricePerDay: 350,
+          description: "Daily budget for cabs and auto rickshaws",
+          rating: 4.3,
+          routes: "Point-to-point",
+          coverage: "Full NCR",
+          bookingUrl: null,
+        },
+      )
+    }
+
+    // Mumbai Local & BEST
+    if (normalizedCity.includes("mumbai")) {
+      localOptions.push(
+        {
+          name: "Mumbai Metro Pass",
+          type: "Metro",
+          operator: "Mumbai Metro",
+          price: Math.round(days * 130),
+          pricePerDay: 130,
+          description: `${days}-day unlimited metro pass (Line 1, 2, 7)`,
+          rating: 4.7,
+          routes: "Ghatkopar-Versova, Andheri-Dahisar, more",
+          coverage: "Western & Central suburbs",
+          bookingUrl: "https://www.metrorailwaymumbai.com/",
+        },
+        {
+          name: "Mumbai Local Train Pass",
+          type: "Suburban Rail",
+          operator: "Indian Railways",
+          price: Math.round(days * 100),
+          pricePerDay: 100,
+          description: `${days}-day 2nd class pass on Mumbai local trains`,
+          rating: 4.5,
+          routes: "Western, Central, Harbour lines",
+          coverage: "Entire Mumbai Metropolitan Region",
+          bookingUrl: "https://www.indianrail.gov.in/",
+        },
+        {
+          name: "BEST Bus Pass",
+          type: "City Bus",
+          operator: "BEST (Brihanmumbai Electric)",
+          price: Math.round(days * 90),
+          pricePerDay: 90,
+          description: `${days}-day unlimited BEST bus pass`,
+          rating: 4.2,
+          routes: "All BEST routes",
+          coverage: "Mumbai city & suburbs",
+          bookingUrl: "https://www.bestundertaking.com/",
+        },
+        {
+          name: "Taxi/Rickshaw Budget",
+          type: "On-demand",
+          operator: "Private",
+          price: Math.round(days * 400),
+          pricePerDay: 400,
+          description: "Daily budget for taxis and auto rickshaws",
+          rating: 4.1,
+          routes: "Point-to-point",
+          coverage: "Entire Mumbai",
+          bookingUrl: null,
+        },
+      )
+    }
+
+    // Generic options for other cities
+    if (localOptions.length === 0) {
+      localOptions.push(
+        {
+          name: "City Metro/Bus Pass",
+          type: "Public Transport",
+          operator: "Local Transport Authority",
+          price: Math.round(days * 100),
+          pricePerDay: 100,
+          description: `${days}-day unlimited local transport pass`,
+          rating: 4.3,
+          routes: "All city routes",
+          coverage: "Entire city",
+          bookingUrl: null,
+        },
+        {
+          name: "Daily Commute Budget",
+          type: "Mixed Transport",
+          operator: "Various",
+          price: Math.round(days * 250),
+          pricePerDay: 250,
+          description: "Daily budget for local buses, autos, taxis",
+          rating: 4.0,
+          routes: "On-demand",
+          coverage: "Full city",
+          bookingUrl: null,
+        },
+      )
+    }
+
+    return localOptions
+  }
+
+  // Add local transport for destination city (both domestic and international)
+  transport.localTransport = getLocalTransportOptions(destination, days, perPersonBudget)
+
+  // For international trips, also add airport transfer options
+  if (travelMode === "international") {
+    transport.localTransport.unshift({
+      name: "Airport Transfer Service",
+      type: "Private Transfer",
+      operator: "Local Provider",
+      price: Math.round(perPersonBudget * 0.03),
+      pricePerDay: null,
+      description: "Round-trip airport pickup and drop-off",
+      rating: 4.6,
+      routes: "Airport to/from hotel",
+      coverage: "Airport connectivity",
+      bookingUrl: null,
+    })
+  }
+
+  const accommodation = [
+    {
+      name: "Budget Stay",
+      price: Math.round(((perPersonBudget * budgetAllocation.stay) / days) * 0.6),
+      rating: 4.0,
+      amenities: "WiFi, Breakfast",
     },
-  }
+    {
+      name: "Comfort Hotel",
+      price: Math.round((perPersonBudget * budgetAllocation.stay) / days),
+      rating: 4.3,
+      amenities: "WiFi, AC, Breakfast, Gym",
+    },
+    {
+      name: "Premium Resort",
+      price: Math.round(((perPersonBudget * budgetAllocation.stay) / days) * 1.5),
+      rating: 4.8,
+      amenities: "Pool, Spa, All Meals",
+    },
+  ]
 
-  // Get default data for unknown destinations
-  const defaultData = {
-    flights: [
-      {
-        name: "Primary Airline",
-        duration: "Varies",
-        price: Math.round(perPersonBudget * 0.25),
-        seats: "Available",
-        rating: 4.2,
-      },
-      {
-        name: "Secondary Airline",
-        duration: "Varies",
-        price: Math.round(perPersonBudget * 0.2),
-        seats: "Available",
-        rating: 4.0,
-      },
-    ],
-    trains: [
-      { name: "Express Train", duration: "Varies", price: Math.round(perPersonBudget * 0.1), class: "AC", rating: 4.1 },
-    ],
-    buses: [
-      {
-        name: "Luxury Bus",
-        duration: "Varies",
-        price: Math.round(perPersonBudget * 0.08),
-        type: "Sleeper",
-        rating: 4.0,
-      },
-    ],
-    hotels: [
-      {
-        name: "Budget Hotel",
-        price: Math.round(((perPersonBudget * budgetAllocation.stay) / days) * 0.6),
-        rating: 4.0,
-        amenities: "Basic",
-      },
-      {
-        name: "Mid-range Hotel",
-        price: Math.round((perPersonBudget * budgetAllocation.stay) / days),
-        rating: 4.3,
-        amenities: "Standard",
-      },
-      {
-        name: "Premium Hotel",
-        price: Math.round(((perPersonBudget * budgetAllocation.stay) / days) * 1.5),
-        rating: 4.7,
-        amenities: "Luxury",
-      },
-    ],
-    restaurants: [
-      {
-        name: "Budget Eatery",
-        price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 0.5),
-        cuisine: "Local",
-        rating: 4.0,
-      },
-      {
-        name: "Mid-range Restaurant",
-        price: Math.round((perPersonBudget * budgetAllocation.food) / days),
-        cuisine: "Multi-cuisine",
-        rating: 4.2,
-      },
-      {
-        name: "Fine Dining",
-        price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 2),
-        cuisine: "Premium",
-        rating: 4.6,
-      },
-    ],
-  }
-
-  const data = destinationData[destination] || defaultData
-
-  const transport: any = { flights: [], trains: [], buses: [] }
-
-  if (transportPreference === "flight" || transportPreference === "mixed") {
-    transport.flights = data.flights || []
-  }
-  if (transportPreference === "train" || transportPreference === "mixed") {
-    transport.trains = data.trains || []
-  }
-  if (transportPreference === "bus" || transportPreference === "mixed") {
-    transport.buses = data.buses || []
-  }
+  const restaurants = [
+    {
+      name: "Local Street Food",
+      price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 0.4),
+      cuisine: "Local Delicacies",
+      rating: 4.5,
+    },
+    {
+      name: "Casual Dining",
+      price: Math.round((perPersonBudget * budgetAllocation.food) / days),
+      cuisine: "Multi-Cuisine",
+      rating: 4.2,
+    },
+    {
+      name: "Fine Dining Experience",
+      price: Math.round(((perPersonBudget * budgetAllocation.food) / days) * 2.5),
+      cuisine: "Gourmet",
+      rating: 4.7,
+    },
+  ]
 
   return Response.json({
     status: "success",
+    source,
     destination,
     budget: perPersonBudget,
     totalBudget: budget,
@@ -391,8 +477,8 @@ export async function GET(request: Request) {
     budgetAllocation,
     data: {
       transport,
-      accommodation: data.hotels || [],
-      restaurants: data.restaurants || [],
+      accommodation,
+      restaurants,
     },
     timestamp: new Date().toISOString(),
   })

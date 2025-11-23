@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { SuggestedPlaces } from "./suggested-places"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 
 interface TravelResults {
   source: string
@@ -21,7 +23,7 @@ interface BookingOption {
 interface BookingLink {
   provider: string
   url: string
-  icon: string
+  icon?: string
 }
 
 export function TravelResults({ source, destination, budget, days, travelMode }: TravelResults) {
@@ -111,15 +113,39 @@ export function TravelResults({ source, destination, budget, days, travelMode }:
 
     if (travelMode === "domestic") {
       links.push(
-        { provider: "Goibibo", url: `https://www.goibibo.com/search?from=${source}&to=${destination}`, icon: "🚀" },
-        { provider: "MakeMyTrip", url: `https://www.makemytrip.com/?from=${source}&to=${destination}`, icon: "✈️" },
-        { provider: "ConfirmTkt", url: `https://www.confirmtkt.com/`, icon: "🎫" },
+        {
+          provider: "Goibibo",
+          url: `https://www.goibibo.com/flights/?from=${source}&to=${destination}&date=${new Date().toISOString().split("T")[0]}`,
+          icon: "🚀",
+        },
+        {
+          provider: "MakeMyTrip",
+          url: `https://www.makemytrip.com/flights/?from=${source}&to=${destination}`,
+          icon: "✈️",
+        },
+        {
+          provider: "RedBus",
+          url: `https://www.redbus.in/bus-tickets/${source}-to-${destination}`,
+          icon: "🚌",
+        },
       )
     } else {
       links.push(
-        { provider: "Skyscanner", url: `https://www.skyscanner.co.in/`, icon: "✈️" },
-        { provider: "Agoda", url: `https://www.agoda.com/`, icon: "🏨" },
-        { provider: "Airbnb", url: `https://www.airbnb.co.in/`, icon: "🏠" },
+        {
+          provider: "Skyscanner",
+          url: `https://www.skyscanner.co.in/transport/flights/${source}/${destination}`,
+          icon: "✈️",
+        },
+        {
+          provider: "Booking.com",
+          url: `https://www.booking.com/searchresults.html?ss=${destination}`,
+          icon: "🏨",
+        },
+        {
+          provider: "Airbnb",
+          url: `https://www.airbnb.co.in/s/${destination}/homes`,
+          icon: "🏠",
+        },
       )
     }
 
@@ -268,8 +294,15 @@ export function TravelResults({ source, destination, budget, days, travelMode }:
                     >
                       <Card className="hover:shadow-2xl transition-all border-2 border-primary/10 bg-gradient-to-br from-primary/5 to-background">
                         <CardHeader>
-                          <CardTitle className="text-lg text-foreground">{flight.name}</CardTitle>
-                          <CardDescription>Premium Flight Experience</CardDescription>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <CardTitle className="text-lg text-foreground">{flight.name}</CardTitle>
+                              <CardDescription>Premium Flight Experience</CardDescription>
+                            </div>
+                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full animate-pulse">
+                              LIVE
+                            </span>
+                          </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <div className="p-3 bg-primary/10 rounded-lg">
@@ -296,49 +329,58 @@ export function TravelResults({ source, destination, budget, days, travelMode }:
               </div>
             )}
 
-            {tripData.data.transport.trains && tripData.data.transport.trains.length > 0 && (
-              <div className="mb-16 animate-fade-in-up" style={{ animationDelay: "0.5s" }}>
-                <h3 className="text-3xl font-bold text-foreground mb-8">Available Trains 🚂</h3>
-                <div className="grid md:grid-cols-3 gap-6">
-                  {tripData.data.transport.trains.map((train: BookingOption, idx: number) => (
-                    <div
-                      key={idx}
-                      style={{
-                        animation: `slideInUp 0.6s ease-out ${0.6 + idx * 0.1}s both`,
-                      }}
-                      className="card-hover"
-                    >
-                      <Card className="hover:shadow-2xl transition-all border-2 border-secondary/10 bg-gradient-to-br from-secondary/5 to-background">
-                        <CardHeader>
-                          <CardTitle className="text-lg text-foreground">{train.name}</CardTitle>
-                          <CardDescription>Comfortable Journey</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="p-3 bg-secondary/10 rounded-lg">
-                            <div className="text-xs font-semibold text-muted-foreground">Price</div>
-                            <div className="text-2xl font-bold text-secondary">
-                              ₹{train.price.toLocaleString("en-IN")}
+            {travelMode === "domestic" &&
+              tripData.data.transport.trains &&
+              tripData.data.transport.trains.length > 0 && (
+                <div className="mb-16 animate-fade-in-up" style={{ animationDelay: "0.5s" }}>
+                  <h3 className="text-3xl font-bold text-foreground mb-8">Available Trains 🚂</h3>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    {tripData.data.transport.trains.map((train: BookingOption, idx: number) => (
+                      <div
+                        key={idx}
+                        style={{
+                          animation: `slideInUp 0.6s ease-out ${0.6 + idx * 0.1}s both`,
+                        }}
+                        className="card-hover"
+                      >
+                        <Card className="hover:shadow-2xl transition-all border-2 border-secondary/10 bg-gradient-to-br from-secondary/5 to-background">
+                          <CardHeader>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <CardTitle className="text-lg text-foreground">{train.name}</CardTitle>
+                                <CardDescription>Comfortable Journey</CardDescription>
+                              </div>
+                              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                                ESTIMATED
+                              </span>
                             </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <div className="text-xs font-semibold text-muted-foreground">Class</div>
-                              <div className="text-foreground font-medium">{train.class}</div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="p-3 bg-secondary/10 rounded-lg">
+                              <div className="text-xs font-semibold text-muted-foreground">Price</div>
+                              <div className="text-2xl font-bold text-secondary">
+                                ₹{train.price.toLocaleString("en-IN")}
+                              </div>
                             </div>
-                            <div>
-                              <div className="text-xs font-semibold text-muted-foreground">Rating</div>
-                              <div className="text-foreground font-medium">⭐ {train.rating}</div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <div className="text-xs font-semibold text-muted-foreground">Class</div>
+                                <div className="text-foreground font-medium">{train.class}</div>
+                              </div>
+                              <div>
+                                <div className="text-xs font-semibold text-muted-foreground">Rating</div>
+                                <div className="text-foreground font-medium">⭐ {train.rating}</div>
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  ))}
+                          </CardContent>
+                        </Card>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {tripData.data.transport.buses && tripData.data.transport.buses.length > 0 && (
+            {travelMode === "domestic" && tripData.data.transport.buses && tripData.data.transport.buses.length > 0 && (
               <div className="mb-16 animate-fade-in-up" style={{ animationDelay: "0.6s" }}>
                 <h3 className="text-3xl font-bold text-foreground mb-8">Available Buses 🚌</h3>
                 <div className="grid md:grid-cols-3 gap-6">
@@ -377,18 +419,161 @@ export function TravelResults({ source, destination, budget, days, travelMode }:
                 </div>
               </div>
             )}
+
+            {tripData.data.transport.localTransport && tripData.data.transport.localTransport.length > 0 && (
+              <div className="mb-16 animate-fade-in-up" style={{ animationDelay: "0.8s" }}>
+                <div className="mb-8">
+                  <h3 className="text-3xl font-bold text-foreground mb-3">Local Transport at {destination} 🚇🚌</h3>
+                  <p className="text-muted-foreground">
+                    Convenient local transit options including metro, buses, and on-demand services for your {days}-day
+                    stay
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {tripData.data.transport.localTransport.map((transport: any, idx: number) => (
+                    <div
+                      key={idx}
+                      style={{
+                        animation: `slideInUp 0.6s ease-out ${0.8 + idx * 0.1}s both`,
+                      }}
+                      className="card-hover"
+                    >
+                      <Card className="hover:shadow-2xl transition-all border-2 border-accent/20 bg-gradient-to-br from-accent/10 to-background h-full">
+                        <CardHeader>
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <CardTitle className="text-lg text-foreground mb-1">{transport.name}</CardTitle>
+                              <CardDescription className="text-xs font-semibold">{transport.operator}</CardDescription>
+                            </div>
+                            <Badge variant="secondary" className="ml-2 text-xs">
+                              {transport.type}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="p-4 bg-gradient-to-r from-accent/20 to-accent/10 rounded-lg border border-accent/30">
+                            <div className="text-xs font-semibold text-muted-foreground mb-1">
+                              {transport.pricePerDay ? `Total for ${days} days` : "One-time Cost"}
+                            </div>
+                            <div className="text-3xl font-bold text-accent">
+                              ₹{transport.price.toLocaleString("en-IN")}
+                            </div>
+                            {transport.pricePerDay && (
+                              <div className="text-xs text-muted-foreground mt-1 font-medium">
+                                ₹{transport.pricePerDay}/day
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="space-y-3">
+                            <div>
+                              <div className="text-xs font-semibold text-muted-foreground mb-1">Description</div>
+                              <div className="text-sm text-foreground leading-relaxed">{transport.description}</div>
+                            </div>
+
+                            {transport.routes && (
+                              <div>
+                                <div className="text-xs font-semibold text-muted-foreground mb-1">Routes</div>
+                                <div className="text-sm text-foreground font-medium">{transport.routes}</div>
+                              </div>
+                            )}
+
+                            {transport.coverage && (
+                              <div>
+                                <div className="text-xs font-semibold text-muted-foreground mb-1">Coverage</div>
+                                <div className="text-sm text-foreground">{transport.coverage}</div>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between pt-2 border-t border-border">
+                              <div className="flex items-center gap-1">
+                                <span className="text-yellow-500">⭐</span>
+                                <span className="font-bold text-foreground">{transport.rating}</span>
+                                <span className="text-xs text-muted-foreground ml-1">rating</span>
+                              </div>
+                              {transport.bookingUrl && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs bg-transparent"
+                                  onClick={() => window.open(transport.bookingUrl, "_blank")}
+                                >
+                                  Learn More
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8 p-6 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl border border-primary/20">
+                  <div className="flex items-start gap-4">
+                    <div className="text-4xl">💡</div>
+                    <div>
+                      <h4 className="font-bold text-foreground mb-2">Pro Tip for Local Transport</h4>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Multi-day passes offer the best value for frequent travelers. Metro systems are fastest for
+                        avoiding traffic, while buses provide the widest coverage. Consider buying rechargeable smart
+                        cards at the start of your trip for seamless travel across the city.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {travelMode === "international" &&
+              tripData.data.transport.localTransport &&
+              tripData.data.transport.localTransport.length > 0 && (
+                <div className="mb-16 animate-fade-in-up" style={{ animationDelay: "0.7s" }}>
+                  <h3 className="text-3xl font-bold text-foreground mb-8">Local Transport at Destination 🚕</h3>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    {tripData.data.transport.localTransport.map((transport: any, idx: number) => (
+                      <Card
+                        key={idx}
+                        className="hover:shadow-2xl transition-all border-2 border-secondary/10 bg-gradient-to-br from-secondary/5 to-background"
+                      >
+                        <CardHeader>
+                          <CardTitle className="text-lg text-foreground">{transport.name}</CardTitle>
+                          <CardDescription>{transport.type}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="p-3 bg-secondary/10 rounded-lg">
+                            <div className="text-xs font-semibold text-muted-foreground">Estimated Cost</div>
+                            <div className="text-2xl font-bold text-secondary">
+                              ₹{transport.price.toLocaleString("en-IN")}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs font-semibold text-muted-foreground">Description</div>
+                            <div className="text-sm text-foreground font-medium">{transport.description}</div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span>⭐</span>
+                            <span className="font-semibold text-foreground">{transport.rating}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
           </>
         )}
 
         {tripData?.data?.accommodation && (
-          <div className="mb-16 animate-fade-in-up" style={{ animationDelay: "0.7s" }}>
+          <div className="mb-16 animate-fade-in-up" style={{ animationDelay: "0.9s" }}>
             <h3 className="text-3xl font-bold text-foreground mb-8">Accommodation Options 🏨</h3>
             <div className="grid md:grid-cols-3 gap-6">
               {tripData.data.accommodation.map((hotel: any, idx: number) => (
                 <div
                   key={idx}
                   style={{
-                    animation: `slideInUp 0.6s ease-out ${0.8 + idx * 0.1}s both`,
+                    animation: `slideInUp 0.6s ease-out ${0.9 + idx * 0.1}s both`,
                   }}
                   className="card-hover"
                 >
@@ -425,14 +610,14 @@ export function TravelResults({ source, destination, budget, days, travelMode }:
         )}
 
         {tripData?.data?.restaurants && (
-          <div className="animate-fade-in-up" style={{ animationDelay: "0.8s" }}>
+          <div className="animate-fade-in-up" style={{ animationDelay: "0.9s" }}>
             <h3 className="text-3xl font-bold text-foreground mb-8">Restaurant Options 🍽️</h3>
             <div className="grid md:grid-cols-3 gap-6">
               {tripData.data.restaurants.map((restaurant: any, idx: number) => (
                 <div
                   key={idx}
                   style={{
-                    animation: `slideInUp 0.6s ease-out ${0.9 + idx * 0.1}s both`,
+                    animation: `slideInUp 0.6s ease-out ${1.0 + idx * 0.1}s both`,
                   }}
                   className="card-hover"
                 >

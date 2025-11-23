@@ -14,7 +14,7 @@ interface TravelPlan {
   days: number
   travelMode: "domestic" | "international"
   groupSize: number
-  transportPreference: "flight" | "train" | "bus" | "mixed"
+  transportPreference: "flight" | "train" | "bus" | "mixed" | "flightOnly" | "flightWithLocal"
   spendingPriority: "accommodation" | "food" | "activities" | "balanced"
 }
 
@@ -34,6 +34,7 @@ const DOMESTIC_CITIES = [
 ]
 
 const INTERNATIONAL_DESTINATIONS = [
+  "India",
   "Bangkok",
   "Bali",
   "Dubai",
@@ -57,7 +58,9 @@ export function TravelPlannerForm({ onSubmit }: TravelPlannerFormProps) {
   const [days, setDays] = useState(3)
   const [travelMode, setTravelMode] = useState<"domestic" | "international">("domestic")
   const [groupSize, setGroupSize] = useState(1)
-  const [transportPreference, setTransportPreference] = useState<"flight" | "train" | "bus" | "mixed">("mixed")
+  const [transportPreference, setTransportPreference] = useState<
+    "flight" | "train" | "bus" | "mixed" | "flightOnly" | "flightWithLocal"
+  >("mixed")
   const [spendingPriority, setSpendingPriority] = useState<"accommodation" | "food" | "activities" | "balanced">(
     "balanced",
   )
@@ -109,6 +112,7 @@ export function TravelPlannerForm({ onSubmit }: TravelPlannerFormProps) {
                       setTravelMode("domestic")
                       setSource("")
                       setDestination("")
+                      setTransportPreference("mixed")
                     }}
                     className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
                       travelMode === "domestic"
@@ -124,6 +128,7 @@ export function TravelPlannerForm({ onSubmit }: TravelPlannerFormProps) {
                       setTravelMode("international")
                       setSource("")
                       setDestination("")
+                      setTransportPreference("flightOnly")
                     }}
                     className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
                       travelMode === "international"
@@ -270,24 +275,58 @@ export function TravelPlannerForm({ onSubmit }: TravelPlannerFormProps) {
               <div className="animate-slide-in-right" style={{ animationDelay: "0.6s" }}>
                 <label className="block text-sm font-semibold text-foreground mb-3">Transport Preference 🚗</label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {["flight", "train", "bus", "mixed"].map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => setTransportPreference(option as any)}
-                      className={`py-3 px-4 rounded-lg font-semibold transition-all text-sm transform hover:scale-105 ${
-                        transportPreference === option
-                          ? "bg-primary text-primary-foreground shadow-lg scale-105"
-                          : "bg-muted text-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      {option === "flight" && "✈️ Flight"}
-                      {option === "train" && "🚂 Train"}
-                      {option === "bus" && "🚌 Bus"}
-                      {option === "mixed" && "🔀 Mixed"}
-                    </button>
-                  ))}
+                  {travelMode === "domestic" ? (
+                    <>
+                      {["flight", "train", "bus", "mixed"].map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setTransportPreference(option as any)}
+                          className={`py-3 px-4 rounded-lg font-semibold transition-all text-sm transform hover:scale-105 ${
+                            transportPreference === option
+                              ? "bg-primary text-primary-foreground shadow-lg scale-105"
+                              : "bg-muted text-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          {option === "flight" && "✈️ Flight"}
+                          {option === "train" && "🚂 Train"}
+                          {option === "bus" && "🚌 Bus"}
+                          {option === "mixed" && "🔀 Mixed"}
+                        </button>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setTransportPreference("flightOnly")}
+                        className={`py-3 px-4 rounded-lg font-semibold transition-all text-sm transform hover:scale-105 col-span-2 ${
+                          transportPreference === "flightOnly"
+                            ? "bg-primary text-primary-foreground shadow-lg scale-105"
+                            : "bg-muted text-foreground hover:bg-muted/80"
+                        }`}
+                      >
+                        ✈️ Flight Only
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTransportPreference("flightWithLocal")}
+                        className={`py-3 px-4 rounded-lg font-semibold transition-all text-sm transform hover:scale-105 col-span-2 ${
+                          transportPreference === "flightWithLocal"
+                            ? "bg-secondary text-secondary-foreground shadow-lg scale-105"
+                            : "bg-muted text-foreground hover:bg-muted/80"
+                        }`}
+                      >
+                        ✈️🚕 Flight + Local Transport
+                      </button>
+                    </>
+                  )}
                 </div>
+                {travelMode === "international" && transportPreference === "flightWithLocal" && (
+                  <p className="text-xs text-muted-foreground mt-2 font-medium">
+                    💡 Includes airport transfers, metros, taxis, and local buses at your destination
+                  </p>
+                )}
               </div>
 
               {/* Spending Priority */}
