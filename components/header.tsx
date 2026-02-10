@@ -45,9 +45,9 @@ export function Header() {
   const navLinks = [
     { href: "/#features", label: "Features" },
     { href: "/planner", label: "Trip Planner" },
+    { href: "/discover", label: "Discover" },
     { href: "/nearby", label: "Explore Nearby" },
     { href: "/features", label: "Smart Tools" },
-    { href: "/#recommendations", label: "Recommendations" },
   ]
 
   return (
