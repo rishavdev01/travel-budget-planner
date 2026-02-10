@@ -1,9 +1,22 @@
 import { neon } from "@neondatabase/serverless"
 import { cookies } from "next/headers"
 
-const sql = neon(process.env.DATABASE_URL!)
+let _sql: ReturnType<typeof neon> | null = null
 
-function generateId(length = 32): string {
+function sql() {
+  if (!_sql) {
+    const url = process.env.DATABASE_URL
+    if (!url) {
+      throw new Error(
+        "DATABASE_URL environment variable is not set. Please configure your Neon database connection."
+      )
+    }
+    _sql = neon(url)
+  }
+  return _sql
+}
+
+function generateToken(length = 48): string {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
   let result = ""
   const array = new Uint8Array(length)
@@ -16,7 +29,7 @@ function generateId(length = 32): string {
 
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder()
-  const salt = generateId(16)
+  const salt = generateToken(16)
   const data = encoder.encode(salt + password)
   const hashBuffer = await crypto.subtle.digest("SHA-256", data)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
@@ -35,23 +48,27 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
 }
 
 export async function signUp(name: string, email: string, password: string) {
-  const existing = await sql`SELECT id FROM wanderwallet_users WHERE email = ${email}`
+  const db = sql()
+
+  const existing = await db`SELECT id FROM wanderwallet_users WHERE email = ${email}`
   if (existing.length > 0) {
     return { error: "An account with this email already exists" }
   }
 
   const hashedPassword = await hashPassword(password)
-  const userId = generateId()
 
-  await sql`
-    INSERT INTO wanderwallet_users (id, name, email, password_hash)
-    VALUES (${userId}, ${name}, ${email}, ${hashedPassword})
+  const inserted = await db`
+    INSERT INTO wanderwallet_users (name, email, password_hash)
+    VALUES (${name}, ${email}, ${hashedPassword})
+    RETURNING id
   `
 
-  const sessionToken = generateId(48)
+  const userId = inserted[0].id
+
+  const sessionToken = generateToken(48)
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 
-  await sql`
+  await db`
     INSERT INTO wanderwallet_sessions (id, user_id, expires_at)
     VALUES (${sessionToken}, ${userId}, ${expiresAt.toISOString()})
   `
@@ -69,7 +86,9 @@ export async function signUp(name: string, email: string, password: string) {
 }
 
 export async function signIn(email: string, password: string) {
-  const users = await sql`SELECT id, name, email, password_hash FROM wanderwallet_users WHERE email = ${email}`
+  const db = sql()
+
+  const users = await db`SELECT id, name, email, password_hash FROM wanderwallet_users WHERE email = ${email}`
   if (users.length === 0) {
     return { error: "Invalid email or password" }
   }
@@ -80,10 +99,10 @@ export async function signIn(email: string, password: string) {
     return { error: "Invalid email or password" }
   }
 
-  const sessionToken = generateId(48)
+  const sessionToken = generateToken(48)
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 
-  await sql`
+  await db`
     INSERT INTO wanderwallet_sessions (id, user_id, expires_at)
     VALUES (${sessionToken}, ${user.id}, ${expiresAt.toISOString()})
   `
@@ -105,7 +124,9 @@ export async function getSession() {
   const token = cookieStore.get("session_token")?.value
   if (!token) return null
 
-  const sessions = await sql`
+  const db = sql()
+
+  const sessions = await db`
     SELECT s.id, s.user_id, s.expires_at, u.name, u.email
     FROM wanderwallet_sessions s
     JOIN wanderwallet_users u ON u.id = s.user_id
@@ -127,7 +148,8 @@ export async function signOut() {
   const cookieStore = await cookies()
   const token = cookieStore.get("session_token")?.value
   if (token) {
-    await sql`DELETE FROM wanderwallet_sessions WHERE id = ${token}`
+    const db = sql()
+    await db`DELETE FROM wanderwallet_sessions WHERE id = ${token}`
   }
   cookieStore.delete("session_token")
   return { success: true }
