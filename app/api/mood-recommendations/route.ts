@@ -1,0 +1,301 @@
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const mood = (searchParams.get("mood") || "").toLowerCase()
+  const city = (searchParams.get("city") || "").toLowerCase()
+
+  const recommendations = getMoodRecommendations(mood, city)
+
+  return Response.json({
+    status: "success",
+    mood,
+    city: city || "all",
+    recommendations,
+    total: recommendations.length,
+  })
+}
+
+interface MoodPlace {
+  id: number
+  name: string
+  city: string
+  type: string
+  description: string
+  whyThisMood: string
+  estimatedCost: string
+  bestTime: string
+  duration: string
+  rating: number
+  tags: string[]
+  localTip: string
+}
+
+function getMoodRecommendations(mood: string, city: string): MoodPlace[] {
+  const allPlaces: Record<string, MoodPlace[]> = {
+    "burnt-out": [
+      {
+        id: 1,
+        name: "Ulsoor Lake Morning Walk",
+        city: "bangalore",
+        type: "Calm & Peaceful",
+        description: "Quiet lakeside walking path lined with old trees, far from traffic noise. Locals do slow yoga here at dawn.",
+        whyThisMood: "No crowds before 7 AM, birdsong replaces city noise, grounding water views",
+        estimatedCost: "Free",
+        bestTime: "5:30 AM - 7:00 AM",
+        duration: "1-2 hours",
+        rating: 4.5,
+        tags: ["nature", "quiet", "morning"],
+        localTip: "Enter from the east gate near the temple. The west side gets joggers and gets noisy after 7 AM.",
+      },
+      {
+        id: 2,
+        name: "Nrityagram Dance Village",
+        city: "bangalore",
+        type: "Calm & Peaceful",
+        description: "A secluded dance ashram in the countryside outside Bangalore. Watch rehearsals, walk through stone pathways surrounded by greenery.",
+        whyThisMood: "Zero phone signal zone, meditative atmosphere, artists practicing in silence",
+        estimatedCost: "Rs 200 entry",
+        bestTime: "Saturday mornings (open house)",
+        duration: "3-4 hours",
+        rating: 4.8,
+        tags: ["art", "silence", "rural"],
+        localTip: "Combine with Hesaraghatta Lake nearby. Carry your own food -- no restaurants around.",
+      },
+      {
+        id: 3,
+        name: "Lodhi Garden Quiet Corners",
+        city: "delhi",
+        type: "Calm & Peaceful",
+        description: "While the main paths are crowded, the area behind Bara Gumbad tomb has stone benches under banyan trees where almost nobody goes.",
+        whyThisMood: "Hidden pockets of silence in a busy city, ancient trees create a canopy that blocks out noise",
+        estimatedCost: "Free",
+        bestTime: "Weekday mornings before 8 AM",
+        duration: "1-2 hours",
+        rating: 4.6,
+        tags: ["history", "garden", "quiet"],
+        localTip: "Avoid weekends. Walk to the back wall near the Athpula bridge for the most peaceful spot.",
+      },
+      {
+        id: 4,
+        name: "Kanheri Caves Forest Trail",
+        city: "mumbai",
+        type: "Calm & Peaceful",
+        description: "Ancient Buddhist caves inside Sanjay Gandhi National Park. The trail through dense forest to reach them is the real therapy.",
+        whyThisMood: "Forest bathing effect, 2000-year-old caves create awe that quiets a racing mind",
+        estimatedCost: "Rs 50 entry",
+        bestTime: "Early morning on weekdays",
+        duration: "4-5 hours",
+        rating: 4.7,
+        tags: ["nature", "caves", "forest"],
+        localTip: "Skip the main cave cluster. Take the unmarked left trail past cave 3 for isolated meditation caves.",
+      },
+      {
+        id: 5,
+        name: "Palolem Beach Silent Shacks",
+        city: "goa",
+        type: "Calm & Peaceful",
+        description: "The south end of Palolem near the rocky outcrop has a few old shacks run by local families. No music, just waves.",
+        whyThisMood: "Genuine quiet beach experience away from party Goa, warm food cooked by local families",
+        estimatedCost: "Rs 300-500 per meal",
+        bestTime: "October to February, mornings",
+        duration: "Half day",
+        rating: 4.6,
+        tags: ["beach", "quiet", "local-food"],
+        localTip: "Ask for 'Raju's place' at the far south end. No signboard, but the fish curry rice is unmatched.",
+      },
+      {
+        id: 6,
+        name: "Cubbon Park Reading Corner",
+        city: "bangalore",
+        type: "Calm & Peaceful",
+        description: "The old bandstand area in Cubbon Park has stone benches under massive rain trees. Locals come to read, sketch, or just sit.",
+        whyThisMood: "No agenda needed, just existing in green space. The library nearby has a peaceful reading room too.",
+        estimatedCost: "Free",
+        bestTime: "Weekday afternoons",
+        duration: "2-3 hours",
+        rating: 4.4,
+        tags: ["garden", "reading", "peaceful"],
+        localTip: "The area behind the State Library has the least foot traffic. Carry a book or sketchpad.",
+      },
+    ],
+    lonely: [
+      {
+        id: 7,
+        name: "Matteo Coffea Communal Table",
+        city: "bangalore",
+        type: "Social Experience",
+        description: "Specialty coffee shop in Church Street with a long communal table where strangers regularly end up in conversation.",
+        whyThisMood: "Designed for accidental connections. Regulars are friendly, baristas introduce newcomers.",
+        estimatedCost: "Rs 250-400",
+        bestTime: "Saturday afternoons",
+        duration: "1-2 hours",
+        rating: 4.5,
+        tags: ["coffee", "social", "conversation"],
+        localTip: "Sit at the communal table, not the window seats. Order the filter coffee and you will have a conversation within 10 minutes.",
+      },
+      {
+        id: 8,
+        name: "Humayunpur Village Walking Tour",
+        city: "delhi",
+        type: "Social Experience",
+        description: "A tiny northeastern village inside Delhi with community kitchens, open-door eateries, and locals who love sharing their food culture.",
+        whyThisMood: "Instant warmth from food-sharing culture. Everyone cooks with their door open and invites passersby.",
+        estimatedCost: "Rs 150-300",
+        bestTime: "Lunch time, weekdays",
+        duration: "2-3 hours",
+        rating: 4.4,
+        tags: ["food", "community", "culture"],
+        localTip: "Walk in and ask any shopkeeper for 'best momos.' They will personally take you to their favorite stall.",
+      },
+      {
+        id: 9,
+        name: "Dharavi Pottery Colony Workshop",
+        city: "mumbai",
+        type: "Social Experience",
+        description: "Join potters from the Kumbharwada area for hands-on clay sessions. Multi-generational families work together and love teaching visitors.",
+        whyThisMood: "Working with hands alongside others creates connection without forced small talk",
+        estimatedCost: "Rs 200-500",
+        bestTime: "Morning, Monday to Saturday",
+        duration: "2-3 hours",
+        rating: 4.6,
+        tags: ["craft", "community", "hands-on"],
+        localTip: "Ask for Ramesh bhai's workshop. He speaks English and has been teaching visitors for 20 years.",
+      },
+      {
+        id: 10,
+        name: "Saturday Night Market Arpora",
+        city: "goa",
+        type: "Social Experience",
+        description: "Massive open-air night market with live music stages, communal eating areas, and a mix of travelers and locals.",
+        whyThisMood: "The communal seating and live music naturally bring strangers together. Everyone is in a good mood.",
+        estimatedCost: "Rs 500-1000",
+        bestTime: "Saturday 6 PM onwards",
+        duration: "3-4 hours",
+        rating: 4.5,
+        tags: ["market", "music", "nightlife"],
+        localTip: "Head to the back area near the live band stage. That is where solo travelers naturally congregate.",
+      },
+      {
+        id: 11,
+        name: "Koramangala Board Game Cafe",
+        city: "bangalore",
+        type: "Social Experience",
+        description: "DICE Board Game Cafe has tables for strangers to join ongoing games. The staff actively helps solo visitors find a group.",
+        whyThisMood: "Games break ice instantly. No need for conversation skills -- the game does the work.",
+        estimatedCost: "Rs 300-500",
+        bestTime: "Friday and Saturday evenings",
+        duration: "2-4 hours",
+        rating: 4.3,
+        tags: ["games", "social", "indoor"],
+        localTip: "Tell the staff you are solo. They will seat you with a group playing something beginner-friendly.",
+      },
+      {
+        id: 12,
+        name: "Majnu Ka Tilla Tibetan Colony",
+        city: "delhi",
+        type: "Social Experience",
+        description: "Tight-knit Tibetan refugee community with shared dining halls, monastery meditation sessions open to all, and warm hospitality.",
+        whyThisMood: "Monastery meditation sessions welcome everyone. The communal thukpa restaurants seat strangers together.",
+        estimatedCost: "Rs 100-200",
+        bestTime: "Any day, afternoon",
+        duration: "3-4 hours",
+        rating: 4.5,
+        tags: ["culture", "meditation", "community"],
+        localTip: "Visit the monastery first, then eat at AMA Cafe. Mention you are visiting alone and regulars will include you.",
+      },
+    ],
+    adventurous: [
+      {
+        id: 13,
+        name: "Ramanagara Rock Climbing",
+        city: "bangalore",
+        type: "Thrill Activity",
+        description: "Real granite boulders where the movie Sholay was filmed. Local climbing groups organize weekend sessions for all skill levels.",
+        whyThisMood: "Raw outdoor climbing on actual rock faces, not gym walls. Adrenaline from heights and physical challenge.",
+        estimatedCost: "Rs 800-1500",
+        bestTime: "Weekend mornings, October to March",
+        duration: "Full day",
+        rating: 4.7,
+        tags: ["climbing", "outdoor", "adrenaline"],
+        localTip: "Join the Bangalore Climbing Initiative group. They lend gear and have trained belayers. Do not go solo.",
+      },
+      {
+        id: 14,
+        name: "Yamuna Rafting at Wazirabad",
+        city: "delhi",
+        type: "Thrill Activity",
+        description: "Post-monsoon kayaking on the Yamuna near the barrage. Not touristy at all -- locals and rowing clubs use this stretch.",
+        whyThisMood: "Urban adventure you would never expect in Delhi. The barrage currents add genuine challenge.",
+        estimatedCost: "Rs 500-1000",
+        bestTime: "September to November mornings",
+        duration: "3-4 hours",
+        rating: 4.3,
+        tags: ["water-sports", "urban-adventure", "kayaking"],
+        localTip: "Contact Delhi Kayak Club, not tour operators. They know the safe current zones and provide proper gear.",
+      },
+      {
+        id: 15,
+        name: "Bandra-Worli Sea Link Night Cycling",
+        city: "mumbai",
+        type: "Thrill Activity",
+        description: "Organized midnight cycling rides across the sea link and through empty Marine Drive. The city transforms after midnight.",
+        whyThisMood: "Mumbai at 2 AM is a different planet. The sea link with zero traffic and ocean wind is genuinely thrilling.",
+        estimatedCost: "Rs 600-1000",
+        bestTime: "Midnight, organized group rides",
+        duration: "4-5 hours",
+        rating: 4.6,
+        tags: ["cycling", "night", "urban-adventure"],
+        localTip: "Join Mumbai Midnight Cycling on social media. They do monthly rides with safety marshals and backup vehicles.",
+      },
+      {
+        id: 16,
+        name: "Dudhsagar Waterfall Jeep Trail",
+        city: "goa",
+        type: "Thrill Activity",
+        description: "Off-road jeep ride through river crossings and dense jungle to reach the massive waterfall. The journey is the adventure.",
+        whyThisMood: "Multiple river crossings where the jeep is half-submerged, jungle trail with no road -- pure raw adventure.",
+        estimatedCost: "Rs 600 per person (shared jeep)",
+        bestTime: "July to September for full flow",
+        duration: "Full day",
+        rating: 4.8,
+        tags: ["off-road", "waterfall", "jungle"],
+        localTip: "Book from Kulem station, not Panjim tour operators. Kulem locals charge half and know every rock in the river.",
+      },
+      {
+        id: 17,
+        name: "Anthargange Night Trek & Cave Exploration",
+        city: "bangalore",
+        type: "Thrill Activity",
+        description: "Volcanic rock caves you have to crawl through in pitch darkness, followed by a night trek to a hilltop with star views.",
+        whyThisMood: "Crawling through dark narrow caves with only a headlamp is genuinely nerve-wracking. The star sky after is the reward.",
+        estimatedCost: "Rs 1000-1500",
+        bestTime: "Weekend nights, clear sky months",
+        duration: "Overnight",
+        rating: 4.7,
+        tags: ["caving", "night-trek", "stars"],
+        localTip: "Go with BTC (Bangalore Trekking Club). They know which cave passages are safe. Never attempt caves solo.",
+      },
+      {
+        id: 18,
+        name: "Flyboarding at Chapora River",
+        city: "goa",
+        type: "Thrill Activity",
+        description: "Water-jet powered flyboard that launches you 15 meters above the river. One of the few spots in India offering this.",
+        whyThisMood: "Flying above water on jet propulsion is unlike any other experience. Falls are part of the fun.",
+        estimatedCost: "Rs 2500-3500",
+        bestTime: "October to March, calm water",
+        duration: "1-2 hours",
+        rating: 4.5,
+        tags: ["water-sports", "flying", "extreme"],
+        localTip: "Book directly at Chapora jetty, not through hotel concierge. Jetty operators give 20-minute sessions, hotels give 10.",
+      },
+    ],
+  }
+
+  let places = allPlaces[mood] || []
+
+  if (city && city !== "all") {
+    places = places.filter((p) => p.city === city)
+  }
+
+  return places
+}
